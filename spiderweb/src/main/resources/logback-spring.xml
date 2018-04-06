@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    系统日志配置文件
+    采用logback
+-->
+<configuration>
+
+
+    <!-- 彩色日志 -->
+    <!-- 彩色日志依赖的渲染类 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
+    <conversionRule conversionWord="wex" converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter" />
+    <conversionRule conversionWord="wEx"
+                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter" />
+    <!-- 彩色日志格式 -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="${CONSOLE_LOG_PATTERN:-%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}" />
+
+    <!-- 正常的文件输出格式 -->
+    <property name="PATTERN" value="%-12(%d{yyyy-MM-dd HH:mm:ss.SSS}) |-%-5level [%thread] %c [%L] -| %msg%n" />
+    <!-- 控制台 Console 输出设置 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 滚动记录文件，先将日志记录到指定文件，当符合某个条件时，将日志记录到其他文件 -->
+    <appender name="INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--<File>info.log</File>-->
+
+        <encoder>
+            <Pattern>${PATTERN}</Pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <!-- ThresholdFilter:临界值过滤器，过滤掉 TRACE 和 DEBUG 级别的日志 -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 每天生成一个日志文件，保存30天的日志文件
+            - 如果隔一段时间没有输出日志，前面过期的日志不会被删除，只有再重新打印日志的时候，会触发删除过期日志的操作。
+
+            -->
+            <!--文件格式
+             i%指代第几份文件 比如一天的日志大小超过限制 则会有log0,log1,log2几份文件
+             d%时间格式
+            -->
+
+            <!-- 本地环境  -->
+            <springProfile name="dev">
+                <fileNamePattern>logs/info-%i.%d{yyyy-MM-dd}.log</fileNamePattern>
+            </springProfile>
+
+            <!-- 生产环境 -->
+            <springProfile name="prod">
+                <fileNamePattern>/data/logs/oms/info-%i.%d{yyyy-MM-dd}.log</fileNamePattern>
+            </springProfile>
+
+
+            <!--日志文件保存天数-->
+            <maxHistory>30</maxHistory>
+            <TimeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!--日志文件大小限制-->
+                <maxFileSize>100MB</maxFileSize>
+            </TimeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+    </appender >
+
+    <!-- 开发环境 -->
+    <springProfile name="dev">
+
+        <logger name="com.cyipp.skynet.*"/>
+
+        <!--<root level="DEBUG">-->
+            <!--<appender-ref ref="INFO" />-->
+            <!--<appender-ref ref="CONSOLE" />-->
+        <!--</root>-->
+        <root level="INFO">
+            <appender-ref ref="INFO" />
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+
+    <!-- 生产环境日志 INFO级别 -->
+    <springProfile name="prod">
+
+        <logger name="com.chenmq.crawler.*"/>
+
+        <root level="WARN">
+            <appender-ref ref="INFO" />
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+
+</configuration>
