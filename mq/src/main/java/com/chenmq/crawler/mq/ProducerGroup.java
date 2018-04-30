@@ -1,13 +1,19 @@
 package com.chenmq.crawler.mq;
 
+import com.alibaba.fastjson.JSON;
+import com.chenmq.crawler.crawler.domain.SpiderRule;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StopWatch;
 
 import javax.annotation.PostConstruct;
+import java.util.Date;
 
 /**
  * @author chenmq
@@ -18,53 +24,66 @@ import javax.annotation.PostConstruct;
  * @date 2018-04-02 下午11:28
  */
 
-//@Component
 public class ProducerGroup {
 
-    /**
-     * 生产者的组名
-     */
-    @Value("${apache.rocketmq.producer.producerGroup}")
-    private String producerGroup;
 
-    /**
-     * NameServer 地址
-     */
-    @Value("${apache.rocketmq.namesrvAddr}")
-    private String namesrvAddr;
-
-    @PostConstruct
-    public void defaultMQProducer() {
-        //生产者的组名
-        DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
-        //指定NameServer地址，多个地址以 ; 隔开
-        producer.setNamesrvAddr(namesrvAddr);
-
+    public static void main(String[] args) {
         try {
-            /**
-             * Producer对象在使用之前必须要调用start初始化，初始化一次即可
-             * 注意：切记不可以在每次发送消息时，都调用start方法
-             */
-            producer.start();
-
-            //创建一个消息实例，包含 topic、tag 和 消息体
-            //如下：topic 为 "TopicTest"，tag 为 "push"
-            Message message = new Message("TopicTest", "push", "发送消息----CHENMINGQIN----".getBytes(RemotingHelper.DEFAULT_CHARSET));
-
-            StopWatch stop = new StopWatch();
-            stop.start();
-
-            for (int i = 0; i < 10000; i++) {
-                SendResult result = producer.send(message);
-                System.out.println("发送响应：MsgId:" + result.getMsgId() + "，发送状态:" + result.getSendStatus());
-            }
-            stop.stop();
-            System.out.println("----------------发送一万条消息耗时：" + stop.getTotalTimeMillis());
-        } catch (Exception e) {
+            sendRocketMqTest();
+        } catch (MQClientException e) {
             e.printStackTrace();
-        } finally {
-            producer.shutdown();
         }
+    }
+
+    /**
+     * 生产者测试代码
+     * @throws MQClientException
+     */
+    private static void sendRocketMqTest () throws MQClientException {
+        String producerGroup = "CHENMQ_SPIDER_PRODUCE_GROUP";
+       /* String topIc = "TopicTest";
+        String tag = "push";*/
+
+        String TOPIC = "CHENMQ_NOW_SPIDER_QUEUE";
+
+        String TAG = "CHENMQ_SPIDER_TAG";
+
+        DefaultMQProducer producer = new DefaultMQProducer(producerGroup);
+        producer.setNamesrvAddr("localhost:9876");
+        producer.setInstanceName("producer");
+        producer.start();
+
+        for (int i = 1; i < 11; i++) {
+            SpiderRule spiderRule = new SpiderRule();
+            spiderRule.setCreateDate(new Date());
+            spiderRule.setCreateUser(1);
+            spiderRule.setSearchKeyword("iphone");
+            spiderRule.setPlatFormId(i);
+            spiderRule.setPlatFormName("简书");
+            spiderRule.setIsDefaultList(true);
+
+            String body = JSON.toJSONString(spiderRule);
+
+            Message msg = new Message(TOPIC,
+                    TAG,
+                    (body.getBytes())
+            );
+            SendResult sendResult = null;
+            try {
+                sendResult = producer.send(msg);
+            } catch (MQClientException | MQBrokerException | InterruptedException | RemotingException e) {
+                e.printStackTrace();
+            }
+            System.out.println(sendResult);
+
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        producer.shutdown();
     }
 
 }
