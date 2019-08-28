@@ -72,7 +72,7 @@
     <!-- 开发环境 -->
     <springProfile name="dev">
 
-        <logger name="com.cyipp.skynet.*"/>
+        <logger name="com.chenmq.crawler.*"/>
 
         <!--<root level="DEBUG">-->
             <!--<appender-ref ref="INFO" />-->
